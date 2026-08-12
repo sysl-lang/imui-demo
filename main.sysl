@@ -12,7 +12,7 @@
 
 import sh.sysl.imui.*
 import sh.sysl.cairo.*
-import sh.sysl.cairo.externs
+import sh.sysl.cairo.c
 import sh.sysl.sdl3
 import sysl.slices.as_ptr
 
@@ -36,7 +36,7 @@ const MAX_CMDS: usize = 256
 // the seam rather than as demo code. There is no state beyond the cairo context and the font's
 // height, because a painter is asked to do one thing at a time and never asked to remember.
 struct CairoPainter
-    cr: Context
+    cr: &Context
     ascent: real
     height: int
 
@@ -44,7 +44,7 @@ impl Painter for CairoPainter
     fill_rect(*self, r: Rect, color: u32)
         if r.is_empty() then return
 
-        source(&self.cr, color)
+        source(self.cr, color)
         self.cr.rectangle(real(r.x), real(r.y), real(r.w), real(r.h))
         self.cr.fill()
     end fill_rect
@@ -61,9 +61,13 @@ impl Painter for CairoPainter
     draw_text(*self, x: int, y: int, s: string, color: u32)
         var buf: [TEXT_MAX]u8
 
-        source(&self.cr, color)
+        source(self.cr, color)
         self.cr.move_to(real(x), real(y) + self.ascent)
-        externs.show_text(self.cr.handle, terminate(s, buf[0..<TEXT_MAX]))
+        // Straight to C, on purpose: `Context.show_text` takes a `string` and allocates a
+        // NUL-terminated copy of it, which in a frame loop is a copy per label per frame. The
+        // buffer above is this frame's, so the raw call is the one that costs nothing. Naming
+        // cairo's C layer `c` is what makes that visible rather than looking like an internal.
+        c.show_text(self.cr.handle, terminate(s, buf[0..<TEXT_MAX]))
     end draw_text
 
     set_clip(*self, r: Rect)
@@ -80,7 +84,7 @@ impl Painter for CairoPainter
         var buf: [TEXT_MAX]u8
         var e = text_extents()
 
-        externs.text_extents(self.cr.handle, terminate(s, buf[0..<TEXT_MAX]), e.ptr())
+        c.text_extents(self.cr.handle, terminate(s, buf[0..<TEXT_MAX]), e.ptr())
 
         val w = e.x_advance
 
@@ -111,7 +115,7 @@ end terminate
 
 // An `impl` block supplies what the trait asked for and nothing else, so the one helper the four
 // primitives share is a function beside them rather than a private member.
-private source(cr: *Context, color: u32)
+private source(cr: &Context, color: u32)
     cr.set_source_rgba(real(color_r(color)) / 255.0, real(color_g(color)) / 255.0,
                        real(color_b(color)) / 255.0, real(color_a(color)) / 255.0)
 end source
@@ -236,10 +240,10 @@ main(args: []string) -> Result[unit, string]
     if made.is_none() then return Err(sdl3.error())
 
     var tex = made.unwrap()
-    var surface = image_surface(FORMAT_ARGB32, W, H)
+    var surface = image_surface(Format.Argb32, W, H)
     var cr = context(surface)
 
-    cr.select_font_face("sans", FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
+    cr.select_font_face("sans", FontSlant.Normal, FontWeight.Normal)
     cr.set_font_size(15.0)
 
     val fe = cr.font_extents()
@@ -352,8 +356,6 @@ main(args: []string) -> Result[unit, string]
     tex.destroy()
     r.destroy()
     win.destroy()
-    cr.destroy()
-    surface.destroy()
     sdl3.quit()
     Ok(())
 end main
@@ -367,10 +369,10 @@ end main
 // nothing moved repaints nothing, and a frame in which one slider moved repaints the bands that
 // slider is in and no others.
 private one_frame_to_png() -> Result[unit, string]
-    var surface = image_surface(FORMAT_ARGB32, W, H)
+    var surface = image_surface(Format.Argb32, W, H)
     var cr = context(surface)
 
-    cr.select_font_face("sans", FONT_SLANT_NORMAL, FONT_WEIGHT_NORMAL)
+    cr.select_font_face("sans", FontSlant.Normal, FontWeight.Normal)
     cr.set_font_size(15.0)
 
     val fe = cr.font_extents()
@@ -422,8 +424,6 @@ private one_frame_to_png() -> Result[unit, string]
 
     val wrote = surface.write_png("demo.png")
 
-    cr.destroy()
-    surface.destroy()
 
     if !wrote.ok() then return Err("could not write demo.png")
 

@@ -9,7 +9,7 @@ screen. [**cairo**](https://github.com/sysl-lang/cairo) draws it and
 
 ```
 brew install cairo sdl3
-sysl run . --link-path /opt/homebrew/lib
+sysl run . --link-path /opt/homebrew/lib --include-path cairo=/opt/homebrew/include/cairo
 ```
 
 | input | what it does |
