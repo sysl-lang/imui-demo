@@ -1,0 +1,24 @@
+// The demo for `imui` — a 320x480 settings panel, drawn by cairo and shown by SDL3.
+//
+// Three dependencies, and the division between them is the point of the program: `imui` decides
+// what a frame contains and what the finger did to it, `cairo` turns that into pixels, and `sdl3`
+// supplies a window and a clock. Only the middle one would change on the board.
+
+package {
+  name    = "imui-demo"
+  version = "0.1.0"
+}
+
+dependencies {
+  // imui — via --lib while it is unpublished
+  cairo { git = "github.com/sysl-lang/cairo", version = "0.1.0" }
+  sdl3 { git = "github.com/sysl-lang/sdl3", version = "0.1.2" }
+}
+
+// The capabilities are cairo's and SDL's, not `imui`'s — the library itself asks for nothing and
+// declares `@no_alloc`, which is the whole reason it can also be linked into an image for a board
+// that has neither of these.
+requires {
+  os    = true
+  alloc = true
+}
