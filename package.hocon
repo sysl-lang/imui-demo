@@ -10,7 +10,7 @@ package {
 }
 
 dependencies {
-  // imui — via --lib while it is unpublished
+  imui { git = "github.com/sysl-lang/imui", version = "0.1.0" }
   cairo { git = "github.com/sysl-lang/cairo", version = "0.1.0" }
   sdl3 { git = "github.com/sysl-lang/sdl3", version = "0.1.2" }
 }

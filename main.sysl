@@ -12,6 +12,7 @@
 
 import sh.sysl.imui.*
 import sh.sysl.cairo.*
+import sh.sysl.cairo.externs
 import sh.sysl.sdl3
 import sysl.slices.as_ptr
 
@@ -51,10 +52,18 @@ impl Painter for CairoPainter
     // `imui` positions text by the top-left of its box and cairo draws from a baseline, so the
     // conversion happens here -- which is where the font is, and therefore the only place that can
     // do it.
+    //
+    // **It goes to the extern rather than to `Context.show_text`, and that is not an optimisation.**
+    // The binding's method converts the string with `sysl.text.cstring`, which makes heap storage --
+    // and `imui` is `@no_alloc`, so instantiating its generics with a painter that reaches an
+    // allocator is refused (card 0087). Terminating into a buffer this function owns costs nothing
+    // and keeps the library's promise intact for every backend, which is the point of having it.
     draw_text(*self, x: int, y: int, s: string, color: u32)
+        var buf: [TEXT_MAX]u8
+
         source(&self.cr, color)
         self.cr.move_to(real(x), real(y) + self.ascent)
-        self.cr.show_text(s)
+        externs.show_text(self.cr.handle, terminate(s, buf[0..<TEXT_MAX]))
     end draw_text
 
     set_clip(*self, r: Rect)
@@ -68,12 +77,37 @@ impl Painter for CairoPainter
     // Rounded up, because a label that is measured one pixel short is a label with its last column
     // clipped off, and the damage pass would then never know the missing column was there.
     text_width(self, s: string) -> int
-        val w = self.cr.text_extents(s).x_advance
+        var buf: [TEXT_MAX]u8
+        var e = text_extents()
+
+        externs.text_extents(self.cr.handle, terminate(s, buf[0..<TEXT_MAX]), e.ptr())
+
+        val w = e.x_advance
 
         int(w) + (if w > real(int(w)) then 1 else 0)
     end text_width
 
     line_height(self) -> int = self.height
+
+// The longest label this program draws, with room to spare. A label longer than this is cut rather
+// than growing storage, which is the bargain every fixed buffer makes and the right one here: the
+// alternative is an allocator on the one path that must not have one.
+const TEXT_MAX: usize = 128
+
+// A NUL-terminated copy of `s` in storage the caller owns, and a pointer C can take.
+//
+// This is `sysl.text.cstring` without the heap. It is nine lines because that is all it is -- and
+// it is what lets a backend built on a C library still be instantiated into an allocator-free
+// library.
+private terminate(s: string, into: []u8) -> *u8
+    val n = if s.len < into.len - 1 then s.len else into.len - 1
+
+    for i in 0..<n
+        into[i] = s[i]
+
+    into[n] = 0
+    as_ptr(into)
+end terminate
 
 // An `impl` block supplies what the trait asked for and nothing else, so the one helper the four
 // primitives share is a function beside them rather than a private member.
