@@ -14,6 +14,7 @@ import sh.sysl.imui.*
 import sh.sysl.cairo.*
 import sh.sysl.cairo.c
 import sh.sysl.sdl3
+import sh.sysl.sdl3.c as sdl3c
 import sysl.slices.as_ptr
 
 const W: int = 320
@@ -222,7 +223,7 @@ private rows_text(n: int) -> string
 main(args: []string) -> Result[unit, string]
     if args.len > 1 && args[1] == "--shot" then return one_frame_to_png()
 
-    if !sdl3.init(sdl3.INIT_VIDEO) then return Err(sdl3.error())
+    if !sdl3.init(sdl3c.INIT_VIDEO) then return Err(sdl3.error())
 
     val opened = sdl3.create_window("imui — a 320x480 panel", W, H, 0)
 
@@ -234,7 +235,7 @@ main(args: []string) -> Result[unit, string]
     if started.is_none() then return Err(sdl3.error())
 
     var r = started.unwrap()
-    val made = r.create_texture(sdl3.PIXELFORMAT_ARGB8888, sdl3.TEXTUREACCESS_STREAMING,
+    val made = r.create_texture(sdl3.PixelFormat.Argb8888, sdl3.TextureAccess.Streaming,
                                 i32(W), i32(H))
 
     if made.is_none() then return Err(sdl3.error())
@@ -279,28 +280,28 @@ main(args: []string) -> Result[unit, string]
 
         while pending.is_some()
             val e = pending.unwrap()
-            val kind = e.kind
+            val kind = e.kind()
 
-            if kind == sdl3.EVENT_QUIT
+            if kind == sdl3.EventKind.Quit
                 running = false
-            else if kind == sdl3.EVENT_MOUSE_MOTION
+            else if kind == sdl3.EventKind.MouseMotion
                 mouse_x = int(e.mouse_x())
                 mouse_y = int(e.mouse_y())
-            else if kind == sdl3.EVENT_MOUSE_BUTTON_DOWN
+            else if kind == sdl3.EventKind.MouseButtonDown
                 mouse_x = int(e.mouse_x())
                 mouse_y = int(e.mouse_y())
                 mouse_down = true
-            else if kind == sdl3.EVENT_MOUSE_BUTTON_UP
+            else if kind == sdl3.EventKind.MouseButtonUp
                 mouse_x = int(e.mouse_x())
                 mouse_y = int(e.mouse_y())
                 mouse_down = false
-            else if kind == sdl3.EVENT_KEY_DOWN
+            else if kind == sdl3.EventKind.KeyDown
                 val sc = e.key_scancode()
 
-                if sc == sdl3.SCANCODE_ESCAPE || sc == sdl3.SCANCODE_Q then running = false
-                else if sc == sdl3.SCANCODE_TAB || sc == sdl3.SCANCODE_DOWN then nav = 1
-                else if sc == sdl3.SCANCODE_UP then nav = -1
-                else if sc == sdl3.SCANCODE_RETURN || sc == sdl3.SCANCODE_SPACE then activate = true
+                if sc == sdl3c.SCANCODE_ESCAPE || sc == sdl3c.SCANCODE_Q then running = false
+                else if sc == sdl3c.SCANCODE_TAB || sc == sdl3c.SCANCODE_DOWN then nav = 1
+                else if sc == sdl3c.SCANCODE_UP then nav = -1
+                else if sc == sdl3c.SCANCODE_RETURN || sc == sdl3c.SCANCODE_SPACE then activate = true
 
             pending = sdl3.poll_event()
 
@@ -338,7 +339,7 @@ main(args: []string) -> Result[unit, string]
             val stride = surface.stride()
             val row0 = at[usize(b.rect.y * stride)..<usize(b.rect.bottom() * stride)]
 
-            tex.update_rect(sdl3.Rect(i32(b.rect.x), i32(b.rect.y), i32(b.rect.w), i32(b.rect.h)),
+            tex.update_rect(sdl3.rect(i32(b.rect.x), i32(b.rect.y), i32(b.rect.w), i32(b.rect.h)),
                             as_ptr(row0), i32(stride))
 
             band = next_band(mask, BANDS, screen, b.next)
@@ -353,9 +354,6 @@ main(args: []string) -> Result[unit, string]
         flip = !flip
         first = false
 
-    tex.destroy()
-    r.destroy()
-    win.destroy()
     sdl3.quit()
     Ok(())
 end main
