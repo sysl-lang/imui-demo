@@ -14,7 +14,6 @@ import sh.sysl.imui.*
 import sh.sysl.cairo.*
 import sh.sysl.cairo.c
 import sh.sysl.sdl3
-import sh.sysl.sdl3.c as sdl3c
 import sysl.slices.as_ptr
 
 const W: int = 320
@@ -223,7 +222,7 @@ private rows_text(n: int) -> string
 main(args: []string) -> Result[unit, string]
     if args.len > 1 && args[1] == "--shot" then return one_frame_to_png()
 
-    if !sdl3.init(sdl3c.INIT_VIDEO) then return Err(sdl3.error())
+    if !sdl3.init(sdl3.INIT_VIDEO) then return Err(sdl3.error())
 
     val opened = sdl3.create_window("imui — a 320x480 panel", W, H, 0)
 
@@ -298,10 +297,10 @@ main(args: []string) -> Result[unit, string]
             else if kind == sdl3.EventKind.KeyDown
                 val sc = e.key_scancode()
 
-                if sc == sdl3c.SCANCODE_ESCAPE || sc == sdl3c.SCANCODE_Q then running = false
-                else if sc == sdl3c.SCANCODE_TAB || sc == sdl3c.SCANCODE_DOWN then nav = 1
-                else if sc == sdl3c.SCANCODE_UP then nav = -1
-                else if sc == sdl3c.SCANCODE_RETURN || sc == sdl3c.SCANCODE_SPACE then activate = true
+                if sc == sdl3.SCANCODE_ESCAPE || sc == sdl3.SCANCODE_Q then running = false
+                else if sc == sdl3.SCANCODE_TAB || sc == sdl3.SCANCODE_DOWN then nav = 1
+                else if sc == sdl3.SCANCODE_UP then nav = -1
+                else if sc == sdl3.SCANCODE_RETURN || sc == sdl3.SCANCODE_SPACE then activate = true
 
             pending = sdl3.poll_event()
 
