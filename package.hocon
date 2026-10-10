@@ -7,11 +7,12 @@
 package {
   name    = "imui-demo"
   version = "0.3.0"
+  sysl    = "0.1.0-alpha.8"
 }
 
 dependencies {
   imui { git = "github.com/sysl-lang/imui", version = "0.1.0" }
-  cairo { git = "github.com/sysl-lang/cairo", version = "0.3.2" }
+  cairo { git = "github.com/sysl-lang/cairo", version = "0.3.3" }
   sdl3 { git = "github.com/sysl-lang/sdl3", version = "0.3.6" }
 }
 
